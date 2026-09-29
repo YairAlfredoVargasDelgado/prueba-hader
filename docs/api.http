@@ -1,0 +1,75 @@
+### Colección de peticiones de ejemplo.
+### Compatible con la extensión REST Client de VS Code y con Rider/IntelliJ.
+### Cambie @host si la API corre en otro puerto o en el despliegue público.
+
+@host = http://localhost:8080
+
+### Crear un producto
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "name": "Teclado mecánico RGB",
+  "description": "Switch azul, retroiluminado, layout español.",
+  "price": 189900.00,
+  "stock": 25
+}
+
+### Listar productos (paginado)
+GET {{host}}/api/products?page=1&pageSize=10
+
+### Listar filtrando por nombre
+GET {{host}}/api/products?page=1&pageSize=10&search=teclado
+
+### Consultar un producto por id
+GET {{host}}/api/products/1
+
+### Actualizar los datos descriptivos de un producto
+PUT {{host}}/api/products/1
+Content-Type: application/json
+
+{
+  "name": "Teclado mecánico RGB Pro",
+  "description": "Switch rojo, retroiluminado, layout español.",
+  "price": 209900.00
+}
+
+### Descontar 3 unidades del inventario
+PATCH {{host}}/api/products/1/stock
+Content-Type: application/json
+
+{
+  "quantity": -3
+}
+
+### Ingresar 10 unidades al inventario
+PATCH {{host}}/api/products/1/stock
+Content-Type: application/json
+
+{
+  "quantity": 10
+}
+
+### Intentar descontar más de lo disponible -> 409 Conflict
+PATCH {{host}}/api/products/1/stock
+Content-Type: application/json
+
+{
+  "quantity": -999999
+}
+
+### Datos inválidos -> 400 Bad Request
+POST {{host}}/api/products
+Content-Type: application/json
+
+{
+  "name": "",
+  "price": -10,
+  "stock": -5
+}
+
+### Producto inexistente -> 404 Not Found
+GET {{host}}/api/products/999999
+
+### Eliminar un producto
+DELETE {{host}}/api/products/1
