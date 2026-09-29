@@ -1,0 +1,42 @@
+# Levanta la API y su base de datos con un solo comando:
+#
+#   docker compose up --build
+#
+# Swagger queda en http://localhost:8080
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: product-catalog-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: product_catalog
+    ports:
+      # Se expone por si se quiere inspeccionar la base con un cliente externo.
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # La API no arranca hasta que MySQL acepta conexiones de verdad.
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  api:
+    build: .
+    container_name: product-catalog-api
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__ProductCatalog: "Server=mysql;Port=3306;Database=product_catalog;User Id=root;Password=root;"
+    ports:
+      - "8080:8080"
+
+volumes:
+  mysql-data:

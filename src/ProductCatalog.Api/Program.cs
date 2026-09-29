@@ -20,6 +20,16 @@ var connectionString = builder.Configuration.GetConnectionString("ProductCatalog
         "Falta la cadena de conexión 'ProductCatalog'. Defínala en appsettings.json " +
         "o en la variable de entorno ConnectionStrings__ProductCatalog.");
 
+// Varios proveedores de despliegue (Railway, Render, Fly.io...) asignan el puerto
+// en tiempo de ejecución mediante la variable PORT. Si está presente se respeta;
+// si no, se usan los valores por defecto de ASP.NET Core.
+var port = Environment.GetEnvironmentVariable("PORT");
+
+if (!string.IsNullOrWhiteSpace(port))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+
 // ---------------------------------------------------------------------------
 // Servicios
 // ---------------------------------------------------------------------------
