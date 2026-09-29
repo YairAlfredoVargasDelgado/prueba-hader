@@ -14,7 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 // ---------------------------------------------------------------------------
 // La cadena de conexión se toma de appsettings.json y puede sobrescribirse con la
 // variable de entorno ConnectionStrings__ProductCatalog, que es lo que se usa en
-// Docker y en el despliegue para no versionar credenciales.
+// el despliegue para no versionar credenciales.
 var connectionString = builder.Configuration.GetConnectionString("ProductCatalog")
     ?? throw new InvalidOperationException(
         "Falta la cadena de conexión 'ProductCatalog'. Defínala en appsettings.json " +

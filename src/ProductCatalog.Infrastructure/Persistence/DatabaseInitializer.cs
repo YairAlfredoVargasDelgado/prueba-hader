@@ -12,7 +12,8 @@ namespace ProductCatalog.Infrastructure.Persistence;
 /// Existe para que el proyecto sea reproducible sin pasos manuales: basta con
 /// tener un MySQL accesible y la API deja el esquema listo. El script embebido es
 /// idempotente, así que ejecutarlo en cada arranque es seguro. Además reintenta,
-/// porque al levantar con Docker Compose la API suele estar lista antes que MySQL.
+/// porque en un despliegue la API puede arrancar antes de que la base acepte
+/// conexiones.
 /// </remarks>
 public class DatabaseInitializer
 {

@@ -38,7 +38,7 @@ probarlos desde el navegador.
 | Validaciones y manejo de errores | Entidad `Product` + `ExceptionHandlingMiddleware` |
 | Swagger funcional y legible | Servido en la raíz, alimentado por los comentarios XML del código |
 | Arquitectura | N-Capas (Dominio, Aplicación, Infraestructura, API) |
-| Proyecto replicable | `docker compose up --build` y el esquema se crea solo |
+| Proyecto replicable | `dotnet run`: la API crea la base de datos y el esquema sola |
 
 ---
 
@@ -148,72 +148,77 @@ Dos detalles que explican la forma del diagrama:
 
 ## Puesta en marcha
 
-### Opción A — Docker Compose (recomendada)
+Solo se necesitan dos cosas, y la segunda probablemente ya la tenga:
 
-Es el camino más corto: levanta la API y MySQL, crea el esquema y deja todo listo.
+1. [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0)
+2. Un **MySQL 8** accesible (vale el que ya tenga instalado)
 
-**Requisito:** Docker con el plugin Compose.
+No hay más dependencias: ni contenedores, ni herramientas de migración, ni
+paquetes globales.
 
 ```bash
 git clone https://github.com/YairAlfredoVargasDelgado/prueba-hader.git
 cd prueba-hader
-docker compose up --build
+dotnet run --project src/ProductCatalog.Api
 ```
 
-Cuando termine:
+Eso es todo. Al arrancar, la API **crea la base de datos y la tabla si no
+existen**, así que no hay que ejecutar ningún script previo ni crear el esquema a
+mano. La operación es idempotente: repetirla no tiene efectos secundarios.
+
+Desde Visual Studio o Rider el equivalente es abrir `ProductCatalog.sln` y pulsar
+**Ejecutar**; el navegador abre solo en Swagger.
 
 | Recurso | URL |
 | --- | --- |
-| Swagger UI | <http://localhost:8080> |
-| Contrato OpenAPI | <http://localhost:8080/swagger/v1/swagger.json> |
-| Comprobación de vida | <http://localhost:8080/health> |
+| Swagger UI | <http://localhost:5140> |
+| Contrato OpenAPI | <http://localhost:5140/swagger/v1/swagger.json> |
+| Comprobación de vida | <http://localhost:5140/health> |
 
-Para detenerlo y borrar también los datos:
+### Si su MySQL no es el de por defecto
+
+La configuración de fábrica apunta a `localhost:3306` con usuario `root` y
+contraseña `root`. Si la suya es distinta, ajústela en
+`src/ProductCatalog.Api/appsettings.json` o expórtela como variable de entorno,
+sin tocar el código:
 
 ```bash
-docker compose down -v
+export ConnectionStrings__ProductCatalog="Server=localhost;Port=3306;Database=product_catalog;User Id=root;Password=root;"
 ```
 
-> La API espera a que MySQL responda a su *healthcheck* antes de arrancar y, aun
-> así, reintenta la preparación del esquema hasta diez veces. Si en el primer
-> arranque aparece algún aviso de reintento en el log, es el comportamiento
-> esperado mientras MySQL termina de inicializarse.
+En Windows (PowerShell):
 
-### Opción B — Ejecución local
+```powershell
+$env:ConnectionStrings__ProductCatalog = "Server=localhost;Port=3306;Database=product_catalog;User Id=root;Password=root;"
+```
 
-**Requisitos:** [.NET SDK 8](https://dotnet.microsoft.com/download/dotnet/8.0) y
-un MySQL 8 accesible.
+El usuario indicado necesita permiso para crear la base de datos la primera vez.
+Si prefiere crearla usted, el esquema está en
+[`src/ProductCatalog.Infrastructure/Scripts/schema.sql`](src/ProductCatalog.Infrastructure/Scripts/schema.sql)
+y puede desactivar la creación automática con `Database__AutoMigrate=false`.
 
-1. Ajuste la cadena de conexión en `src/ProductCatalog.Api/appsettings.json`, o
-   expórtela como variable de entorno:
+### Ejecutar las pruebas
 
-   ```bash
-   export ConnectionStrings__ProductCatalog="Server=localhost;Port=3306;Database=product_catalog;User Id=root;Password=root;"
-   ```
+```bash
+dotnet test
+```
 
-2. Ejecute la API:
-
-   ```bash
-   dotnet run --project src/ProductCatalog.Api
-   ```
-
-No hace falta crear la base ni la tabla a mano: al arrancar, la API crea el
-esquema si no existe. La operación es idempotente, así que repetirla no tiene
-efectos secundarios.
+Las 35 pruebas son unitarias y **no necesitan base de datos**, así que corren
+aunque no tenga MySQL levantado.
 
 ---
 
 ## Configuración
 
-Todo se configura con variables de entorno, sin tocar el código. En Docker y en
-el despliegue se usan estas para no versionar credenciales.
+Todo se configura con variables de entorno, sin tocar el código. Es la vía que se
+usa en el despliegue para no versionar credenciales.
 
 | Variable | Descripción | Valor por defecto |
 | --- | --- | --- |
 | `ConnectionStrings__ProductCatalog` | Cadena de conexión a MySQL. **Obligatoria.** | La de `appsettings.json` (MySQL local) |
 | `Database__AutoMigrate` | Si la API debe crear el esquema al arrancar. Póngala en `false` si el esquema se gestiona por otra vía. | `true` |
 | `PORT` | Puerto de escucha. La inyectan proveedores como Railway o Render. | Puerto por defecto de ASP.NET Core |
-| `ASPNETCORE_ENVIRONMENT` | Entorno de ejecución. | `Production` en Docker |
+| `ASPNETCORE_ENVIRONMENT` | Entorno de ejecución. | `Development` al ejecutar en local |
 
 El esquema SQL está en
 [`src/ProductCatalog.Infrastructure/Scripts/schema.sql`](src/ProductCatalog.Infrastructure/Scripts/schema.sql)
@@ -238,7 +243,7 @@ Hay una colección lista para ejecutar en [`docs/api.http`](docs/api.http)
 ### Crear un producto
 
 ```bash
-curl -X POST http://localhost:8080/api/products \
+curl -X POST http://localhost:5140/api/products \
   -H 'Content-Type: application/json' \
   -d '{
         "name": "Teclado mecánico RGB",
@@ -269,7 +274,7 @@ admite como máximo 2 decimales; el stock inicial no puede ser negativo.
 ### Listar con paginación
 
 ```bash
-curl "http://localhost:8080/api/products?page=1&pageSize=5&search=teclado"
+curl "http://localhost:5140/api/products?page=1&pageSize=5&search=teclado"
 ```
 
 ```json
@@ -295,7 +300,7 @@ el nombre, sin distinguir mayúsculas ni acentos.
 Un valor positivo ingresa mercancía y uno negativo la descuenta:
 
 ```bash
-curl -X PATCH http://localhost:8080/api/products/1/stock \
+curl -X PATCH http://localhost:5140/api/products/1/stock \
   -H 'Content-Type: application/json' \
   -d '{"quantity": -3}'
 ```
@@ -389,7 +394,7 @@ alguien escribiera en la base saltándose la API, el dato incorrecto no entrarí
 El repositorio incluye un script que lo comprueba:
 
 ```bash
-./scripts/prueba-concurrencia.sh http://localhost:8080 30 50
+./scripts/prueba-concurrencia.sh http://localhost:5140 30 50
 ```
 
 Crea un producto con 30 unidades y lanza 50 descuentos de 1 unidad **en paralelo**.
@@ -433,18 +438,20 @@ mocks, en coherencia con la decisión de mantener las dependencias al mínimo.
 
 ## Despliegue público
 
-La API está empaquetada con un `Dockerfile` multietapa: compila con el SDK y
-publica sobre la imagen de runtime de ASP.NET, más pequeña y sin herramientas de
-compilación. El proceso corre con un usuario sin privilegios y respeta la variable
-`PORT`, así que funciona tal cual en cualquier proveedor que despliegue
-contenedores.
+La API no impone nada al proveedor. Para publicarla solo hace falta que el
+servicio sepa ejecutar una aplicación **.NET 8** y darle dos cosas:
 
-### Railway (camino más directo, tiene MySQL gestionado)
+| Qué | Para qué |
+| --- | --- |
+| `ConnectionStrings__ProductCatalog` | Apuntar al MySQL del proveedor |
+| Nada más | El puerto se toma de la variable `PORT` si el proveedor la inyecta, y el esquema se crea solo en el primer arranque |
+
+### Railway (tiene MySQL gestionado en el mismo proyecto)
 
 1. Cree un proyecto en [railway.app](https://railway.app) y elija
-   **Deploy from GitHub repo**, apuntando a este repositorio. Railway detecta el
-   `Dockerfile` automáticamente.
-2. En el mismo proyecto, añada un servicio **MySQL** (*New → Database → MySQL*).
+   **Deploy from GitHub repo** apuntando a este repositorio. Detecta el proyecto
+   .NET y lo compila sin configuración adicional.
+2. Añada un servicio **MySQL** al mismo proyecto (*New → Database → MySQL*).
 3. En el servicio de la API, defina la variable:
 
    ```
@@ -453,19 +460,20 @@ contenedores.
 
 4. En *Settings → Networking*, pulse **Generate Domain**.
 
-La URL generada abre directamente en Swagger. El esquema se crea solo en el primer
-arranque.
+La URL generada abre directamente en Swagger.
 
 ### Alternativas
 
-- **Render** — despliegue por Docker, pero no ofrece MySQL gestionado; hay que
-  apuntar `ConnectionStrings__ProductCatalog` a un MySQL externo (Aiven o Clever
-  Cloud tienen plan gratuito).
-- **Fly.io** — `fly launch` detecta el `Dockerfile`; la base se añade aparte.
+- **MonsterASP.NET** — hosting gratuito pensado para ASP.NET Core y que incluye
+  una base MySQL; el despliegue se hace publicando el resultado de
+  `dotnet publish -c Release`.
+- **Azure App Service** — soporta .NET de forma nativa y tiene una capa gratuita;
+  la base MySQL se contrata aparte o se apunta a una externa.
 
 > **Estado:** el despliegue público queda pendiente de ejecutarse con una cuenta
-> propia del proveedor. Todo lo necesario (imagen, variables y pasos) está
-> preparado y verificado localmente; una vez generada la URL, añádala aquí.
+> propia del proveedor. La aplicación ya está preparada (configuración por
+> variables de entorno, soporte de `PORT` y creación automática del esquema) y
+> verificada en local. Una vez generada la URL, añádala aquí.
 
 ---
 
@@ -491,6 +499,5 @@ arranque.
 ├── tests/ProductCatalog.Tests/          # 35 pruebas unitarias
 ├── scripts/prueba-concurrencia.sh       # Demostración del control de concurrencia
 ├── docs/api.http                        # Colección de peticiones de ejemplo
-├── docker-compose.yml                   # API + MySQL con un comando
-└── Dockerfile                           # Imagen multietapa
+└── ProductCatalog.sln                   # Solución: ábrala y ejecute
 ```

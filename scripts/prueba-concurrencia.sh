@@ -11,7 +11,7 @@
 #
 set -euo pipefail
 
-BASE_URL="${1:-http://localhost:8080}"
+BASE_URL="${1:-http://localhost:5140}"
 STOCK_INICIAL="${2:-30}"
 PETICIONES="${3:-50}"
 
