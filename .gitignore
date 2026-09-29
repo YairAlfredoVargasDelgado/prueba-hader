@@ -1,0 +1,20 @@
+# Compilación .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+
+# Publicación
+publish/
+out/
+
+# Configuración local con secretos
+appsettings.Local.json
+.env
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
