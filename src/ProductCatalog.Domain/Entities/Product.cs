@@ -172,7 +172,9 @@ public class Product
             throw new BusinessRuleException("El precio admite máximo 2 decimales.");
         }
 
-        return price;
+        // Sumar 0.00 fuerza la escala a 2 decimales sin alterar el valor, de modo que
+        // la API siempre devuelve el precio con el mismo formato (1000 -> 1000.00).
+        return price + 0.00m;
     }
 
     private static int NormalizeInitialStock(int initialStock)

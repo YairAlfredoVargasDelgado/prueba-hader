@@ -4,6 +4,10 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Los comentarios XML alimentan la documentación de Swagger. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591: no se exige comentario en cada miembro público. CS1573: el CancellationToken no se documenta por ser ruido. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
